@@ -1,0 +1,183 @@
+<!DOCTYPE html> 
+<html lang="en">
+    <!--THIS FILE CONTROLS THE USER LOGIN PAGE FEATURE OF OUR APPLICATION.-->
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In</title>
+
+    <!--import bootstrap icons and crypto for later encryption function we will use-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+    <!--very basic style tag for log-in page: sets positioning and color of login page elements-->
+    <style>
+        body{
+            display:flex; /*flexible box layout*/
+            justify-content: center; /*pack items around the center*/
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            margin: 0px;
+            background-color: lightblue;
+        }
+        #title{
+            background-color: antiquewhite;
+        }
+
+    </style>
+</head>
+<body>
+    <!--'mb-3' and 'mb-5' are margin bottom spacing values-->
+    <div class="mb-5"> <!--This div displays the user login page, including a title, user input fields, a login button, and optional "keep signed in" switch-->
+        <h3 id="title" class="mb-3">Speech To Text Audio Recording App</h3>
+        <h3 id="logintitle" class="mb-3">Log In</h3>
+
+        <!--username and password fields of login page-->
+        <input type="text" placeholder="Username" id="userInp" class="form-control mb-3">
+        <input type="text" placeholder="Password" id="passInp" class="form-control mb-3">
+
+        <!--bootstrap switch mechanism that controls keeping user signed in if page is reopened-->
+        <div class="custom-control custom-switch" mb-3>
+            <input type="checkbox" class="custom-control-input" id="customSwitch1">
+            <label class="custom-control-label" for="customSwitch1">Keep me Logged In</label>
+          </div>
+        
+        <!--Log In Button and Sign Up button that leads user to registration page-->
+        <button type="text" id="sub_btn" class="btn w-100 btn-outline-primary mb-3">Log In</button>
+
+        <!--py-1 is padding and w-100 is width at 100%-->
+        <a href="register.html" class="badge badge-secondary py-1 w-100">Want to Create a New Account?</a>
+    </div>
+
+    <!--Important: script must be of type "module" in order to import and configure firebase-->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.7.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.7.0/firebase-analytics.js";
+
+        //firebase user authentication realtime database access information
+        const firebaseConfig = {
+          apiKey: "AIzaSyDsA2e8JxXwl1q0pHtHsSgCxS2yyIYRAnc",
+          authDomain: "s2textauthentication.firebaseapp.com",
+          databaseURL: "https://s2textauthentication-default-rtdb.firebaseio.com",
+          projectId: "s2textauthentication",
+          storageBucket: "s2textauthentication.appspot.com",
+          messagingSenderId: "19577588188",
+          appId: "1:19577588188:web:da8f98e9c8e074e817a719",
+          measurementId: "G-KDMYVGJP3L"
+        };
+      
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+
+        //in order to use database methods from firebase, we must import a defined set of functions from firebase
+        //for our purposes, only getDatabase, ref, set, child, and get are needed
+        import { getDatabase, ref, set, child, get}
+            from "https://www.gstatic.com/firebasejs/9.7.0/firebase-database.js";
+
+        const db = getDatabase();
+
+        //REFERENCES
+        //user entered text field ids from login page
+
+        //store user inputted information in constant variables that we can access
+        const username = document.getElementById('userInp'); 
+        const pass = document.getElementById('passInp');
+        const submit = document.getElementById('sub_btn'); //represents log-in "submit" button
+
+        //AUTHENTICATION PROCESS
+
+        /*
+        * Authenticates users to login to the home page.
+         */
+        function AuthenticateUser(){
+            const dbref = ref(db);
+
+            //look into database references, and check the existence of UsersList/<username> to see if username is valid
+            get(child(dbref, "UsersList/"+ username.value)).then((snapshot)=>{ //firebase database docs: "DataSnapshot" contains data from a Database location.
+                if(snapshot.exists()){
+
+                    //since username is valid, we need to check if the password is valid. if so, login.
+                    let dbpass = decPass(snapshot.val().password); //decPass decrypts the password, so that we can compare to entered password's value
+                    if(dbpass == pass.value){ //if the decrypted database password stored at this username node is equal to the user's password input, call login function
+                        login(snapshot.val());
+                    }
+
+                    else{
+                        //if username is valid, but password is incorrect, alert the user.
+                        alert("password incorrect for entered user");
+                    }
+                }
+
+                //in registration page, if user did not exist in database, we would create a user
+                //however this time, invalid user names should be met with an alert message
+                else{
+                    
+                    alert("user does not exist"); 
+                    
+                    // set(ref(db, "UsersList/"+ username.value),
+                    // {
+                    //     fullname: name.value,
+                    //     email: email.value,
+                    //     username: username.value,
+                    //     password: encPass()
+
+                    // })
+                    // .then(()=>{
+                    //     alert("User Added Successfully");
+                    // })
+                    // .catch((error)=>{
+                    //     alert("error" + error);
+                    // })
+                }
+            });
+        }
+
+        //DECRYPT PROCESS
+
+        /*
+        *   Makes use of CryptoJS decrypt method to make the encrypted password string comparable
+        */
+        function decPass(dbpass){
+            var pass12 = CryptoJS.AES.decrypt(dbpass, pass.value); //AES is Advanced Encryption Standard, first argument is actual password value to decrypt
+                                                                    //second argument can be used to determine the hash function index
+            return pass12.toString(CryptoJS.enc.Utf8); 
+        }
+
+        //LOGIN, called if user authentication was successful
+        function login(user){
+      
+            //boolean expression to determine if user wanted to stay signed in
+            let keepLoggedIn = document.getElementById("customSwitch1").checked;
+
+            if(!keepLoggedIn){
+                //session storage is only temporarily localized, so after closing browser, storage is cleared. So, user should not stay signed in.
+                sessionStorage.setItem('user', JSON.stringify(user)); //user that is passed to this function should be only set to current name as long as tab is open 
+                
+                //redirect window to home page
+                window.location = "SpeechToText.html";
+            }
+
+            else{
+                //local storage is permanently localized, so after closing browser, storage is not cleared. So, user will stay signed in.
+                localStorage.setItem('keepLoggedIn', 'yes'); //in future sequences, reopening tab will check if keepLoggedIn is set to true
+                localStorage.setItem('user', JSON.stringify(user)); //user that is passed to this function should be only set to current name as long as keep logged in switch is set
+                                                                    //this localStorage value will be referenced in the main SpeechToText application
+
+                //redirect window to home page
+                window.location = "SpeechToText.html";
+            }
+        }
+        
+       
+        //CALL THE EVENT 
+        //when the log in button is clicked, then authenticate user function must be called, which then calls the login function
+        submit.addEventListener('click', AuthenticateUser);
+
+        
+
+      </script>
+</body>
+</html>

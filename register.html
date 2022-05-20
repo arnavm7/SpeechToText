@@ -1,0 +1,185 @@
+<!DOCTYPE html> 
+<html lang="en">
+    <!--THIS FILE CONTROLS THE FEATURE OF THE USER SIGN-UP PAGE OF OUR APPLICATION.-->
+<head>
+    <meta charset="UTF-8"> <!--ascii as character encoding-->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--user's visible area of a web page-->
+    <title>Sign Up</title>
+
+    <!--import bootstrap icons and crypto for later encryption function we will use-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+    <!--very basic style tag for sign-up page: sets positioning and color of login page elements-->
+    <style>
+        body{
+            display:flex; /*flexible box layout*/
+            justify-content: center; /*pack items around the center*/
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            margin: 0px;
+            background-color: lightblue;
+        }
+    </style>
+</head>
+<body>
+    <!--'mb-3' and 'mb-5' are margin bottom spacing values-->
+    <div class="mb-5">
+        <h3 class="mb-3">Sign Up</h3>
+
+        <!--full name, email, username, and password fields of login page-->
+        <input type="text" placeholder="Full name" id="nameInp" class="form-control mb-3">
+        <input type="text" placeholder="Email" id="emailInp" class="form-control mb-3">
+        <input type="text" placeholder="Username" id="userInp" class="form-control mb-3">
+        <input type="password" placeholder="Password" id="passInp" class="form-control mb-3">
+
+        <!--Sign Up Button and optional button that leads user to log in page if they have created an account-->
+        <button type="text" id="sub_btn" class="btn w-100 btn-outline-primary mb-3">Sign Up</button>
+
+        <!--py-1 is padding and w-100 is width at 100%-->
+        <a href="login.html" class="badge badge-secondary py-1 w-100">Already Have An Account?</a>
+    </div>
+
+    <!--Important: script must be of type "module" in order to import and configure firebase-->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.7.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.7.0/firebase-analytics.js";
+
+        //firebase user authentication realtime database access information
+        const firebaseConfig = {
+          apiKey: "AIzaSyDsA2e8JxXwl1q0pHtHsSgCxS2yyIYRAnc",
+          authDomain: "s2textauthentication.firebaseapp.com",
+          databaseURL: "https://s2textauthentication-default-rtdb.firebaseio.com",
+          projectId: "s2textauthentication",
+          storageBucket: "s2textauthentication.appspot.com",
+          messagingSenderId: "19577588188",
+          appId: "1:19577588188:web:da8f98e9c8e074e817a719",
+          measurementId: "G-KDMYVGJP3L"
+        };
+      
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+
+        //in order to use database methods from firebase, we must import a defined set of functions from firebase
+        //for our purposes, only getDatabase, ref, set, child, and get are needed
+        import { getDatabase, ref, set, child, get}
+            from "https://www.gstatic.com/firebasejs/9.7.0/firebase-database.js";
+
+        const db = getDatabase();
+
+        //THE REFERENCES
+        //user entered text field ids from signup page
+        
+        const name = document.getElementById('nameInp');
+        const email = document.getElementById('emailInp');
+        const username = document.getElementById('userInp');
+        const pass = document.getElementById('passInp');
+        const submit = document.getElementById('sub_btn'); //represents sign-up "submit" button
+
+        //VALIDATION
+
+        //helper function which identifies whether a field was left blank by the user
+        function isEmptyOrSpaces(str){
+            return str === null || str.match(/^ *$/) !== null;
+        }
+
+        //Checks that each user's entered sign up text field information is valid
+        function Validation(){
+            
+            //we are using regex (regular expressions) to regulate what is allowed for each field
+
+            //name allows lowercase and uppercase letters with a space
+            let nameregex = /^[a-zA-Z\s]+$/;
+
+            //email allows all letters and numbers and specifically emails from gmail, yahoo, or outlook.com. This functionality can easily be changed to add more email services.
+            let emailregex = /^[a-zA-Z0-9]+@(gmail|yahoo|outlook)\.com$/;
+
+            //username allows all letters and numbers but the length must be at least 5 characters
+            let userregex = /^[a-zA-Z0-9]{5,}$/;
+
+            //confirm that no fields are empty
+            if(isEmptyOrSpaces(name.value) || isEmptyOrSpaces(email.value) ||
+            isEmptyOrSpaces(username.value) || isEmptyOrSpaces(pass.value)){
+                alert("you cannot leave any field empty");
+                return false;
+            }
+
+            //error messages
+
+            //test regex with each name input
+            if(!nameregex.test(name.value)){
+                alert("name should only contain alphabets!");
+                return false;
+            }
+
+            //test regex with each email input
+            if(!emailregex.test(email.value)){
+                alert("enter a valid email");
+                return false;
+            }
+
+            //test regex with each username input
+            if(!userregex.test(username.value)){
+                alert("-username can only be alphanumeric\n-username must be at least 5 characters\n-username cannot contain spaces");
+                return false;
+            }
+            //if reaches here without returning, then the register info has been validated
+            return true;
+        }
+
+        //register user method should add user to user authentication database if information has been validated
+        function RegisterUser(){
+
+            if(!Validation()){
+                return; //if validation goes wrong, return
+            }
+            const dbRef = ref(db); //must get reference of database variable from earlier
+
+             //look into database references, and check the existence of UsersList/<username> to see if username exists
+            get(child(dbRef, "UsersList/"+ username.value)).then((snapshot)=>{ //firebase database docs: "DataSnapshot" contains data from a Database location.
+                if(snapshot.exists()){
+                    alert("Account Already Exists!");
+                }
+
+                //since user does not exist, we can to the authentication database
+                else{
+                    set(ref(db, "UsersList/"+ username.value),
+                    {
+                        fullname: name.value,
+                        email: email.value,
+                        username: username.value,
+                        password: encPass()
+
+                    })
+                    .then(()=>{
+                        alert("User Added Successfully");
+                    })
+                    //catch errors in case there was an issue in signing up
+                    .catch((error)=>{
+                        alert("error" + error);
+                    })
+
+                }
+            });
+        }
+
+    
+        //ENCRYPT THE PASSWORD SO THAT DATABASE ADMIN CANNOT SEE USER PASSWORDS
+
+        // Makes use of CryptoJS decrypt method to make the encrypted password string comparable
+        function encPass(){
+            var pass12 = CryptoJS.AES.encrypt(pass.value, pass.value); //AES is Advanced Encryption Standard, first argument provides input into hashing function
+                                                                    //second argument is the actual value being encrypted
+            return pass12.toString();
+        }
+
+        //ASSIGN THE EVENTS
+        //when the sign up button is clicked, then RegisterUser function must be called to start process of signing up user/checking for information validity
+        submit.addEventListener('click', RegisterUser);
+
+      </script>
+</body>
+</html>

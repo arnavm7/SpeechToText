@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--THIS FILE CONTROLS MAIN RECORDING TO TEXT PAGE FEATURE (HOME PAGE) OF OUR APPLICATION.-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <!--import bootstrap icons and home page stylesheet-->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <link rel="stylesheet" href="speechtextstyle.css">
+
+        <title>Speech to Text Audio Recorder</title>
+        <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
+        <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.css" />
+    </head>
+    <body>
+        <!--first we will look at the navigation bar of this webpaage and its interactivity with the results from logging in/continuing as guest-->
+        <!--from bootstrap, create navigation bar on top of page with login and create new account options-->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a class="navbar-brand" href="#">Navbar</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+          
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <form class="form-inline my-2 my-lg-0">
+
+                <ul class="navbar-nav mr-auto">
+                    <!--mx-1 horizontally centers fixed-width block content-->
+                    <li class="nav-item mx-1">
+                      <a id="userlink" class="nav-link" href="">Username</a>
+                    </li>
+
+                    <li class="nav-item mx-1">
+                        <a id="signoutlink" class="nav-link" href="">Sign Out</a>
+                      </li>
+                  </ul>
+
+              </form>
+            </div>
+          </nav>
+
+          <h3 id="hh"></h3> <!--we will later reference this id as the place to greet the user-->
+          <script>
+              //REFERENCES
+
+              let userlink = document.getElementById('userlink'); //assign reference to place in nav bar where username is displayed
+              let signoutlink = document.getElementById('signoutlink'); //assign reference to place in nav bar where signout is displayed
+              let header = document.getElementById('hh'); //assign reference to place where user is greeted
+              var currentUser = null;
+
+              //USER AUTHENTICATION FUNCTIONS
+              //gets the username if exists, called when speech to text window loads
+              function getUsername(){
+                //if "keep me logged in" was checked in login page, then set boolean true
+                let keepLoggedIn = localStorage.getItem("keepLoggedIn"); //keepLoggedIn node accessed from local storage that we set in login page
+
+                if(keepLoggedIn == "yes"){
+                    //get username as they are signed in as long as keepLoggedIn is set to yes
+                    currentUser = JSON.parse(localStorage.getItem('user'));
+                }
+
+                else{
+                    //keep logged in was not checked, so get whatever value sessionStorage contains for user
+                    currentUser = JSON.parse(sessionStorage.getItem('user')); //session storage user 
+                }
+              }
+
+              function Signout(){
+                  sessionStorage.removeItem('user'); 
+                  localStorage.removeItem('user'); //remove current user from storage
+                  localStorage.removeItem('keepLoggedIn'); //forget that "keep me logged in was checked"
+                  window.location = "SpeechToText.html"; //should once again return to application page, but without a user signed in
+              }
+
+              //WINDOW LOADS
+            window.onload = function(){
+                getUsername(); //retrieve username information
+                //Case 1: USER IS CONTINUING AS A GUEST
+                if(currentUser == null){
+                    //add "create a new account" and "login" to nav bar if user is not signed in
+                    userlink.innerText="Create New Account";
+                    userlink.classList.replace("nav-link", "btn"); //classList accesses an element's list of classes
+                    userlink.classList.add("btn-primary"); //bootstrap identifier to make button blue
+                    userlink.href = "register.html" //link leads to registration page
+
+                    signoutlink.innerText="Login";
+                    signoutlink.classList.replace("nav-link", "btn");
+                    signoutlink.classList.add("btn-success"); //bootstrap identifier to make button green
+                    signoutlink.href = "login.html" //link leads to login page
+                }
+                //Case 2: USER IS SIGNED IN 
+                else{
+                    userlink.innerText= currentUser.username; //set userlink to username>> nothing should happen when username is clicked on
+
+                    //greet user by full name
+                    header.innerText = "Welcome " + currentUser.fullname; //currentUser has access to fullname because it contains the sessionStorage snapshot of the firebase authentication database user node
+                    userlink.classList.replace("btn", "nav-link"); //upon sign-in, "create new account" button should be removed
+                    userlink.classList.remove("btn-primary"); //remove bootstrap identifier to make button blue
+                    userlink.href = "#" //no link
+
+                    //change "login" to "sign out"
+                    signoutlink.innerText= "Sign Out";
+                    signoutlink.classList.replace("btn", "nav-link"); //style change: make sign out appear as link instead of button
+                    signoutlink.classList.remove("btn-success"); //remove bootstrap identifier to make button green 
+                    signoutlink.href = "javascript:Signout()";
+                }
+            }
+
+          </script>
+
+          <!--create div container where speech application main display content is stored-->
+        <div class="container">
+
+            <!--Now we will look at the speech to text recording part of this web page-->
+            <h1>Speech to Text Audio Recorder</h1>
+            <div id="firebaseui-auth-container"></div> <!--added for authentication-->
+
+            <!--in case the browser does not support SpeechToText web page, the "no-browser-support" heading should give further instructions-->
+            <h3 class="no-browser-support">Your Browser Doesn't Support the Web Speech API. Try Safari or Google Chrome.</h3>
+            <div class="record">
+                <div class="input-single">
+
+                    <!--create text area where transcribed text will be written-->
+                    <textarea id="textarea" placeholder="Store data by using voice recognition. Result will appear here." rows="10" cols="50"></textarea>
+                </div>     
+
+                <!-- create buttons for starting and stopping the recording functionality-->
+                <button id="start-record-btn" title="Start Recording">Start Recording</button>
+                <button id="stop-record-btn" title="Stop Recording">Stop Recording/Save</button> 
+                <p id="instructions">Press <strong>Start Recording</strong> to Record.</p>
+            </div>
+        </div>
+
+            <!--Important: script must be of type "module" in order to import and configure firebase-->
+        <script type="module">  
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js";
+            import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-analytics.js";
+            import { getAuth } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-auth.js";
+
+            //this database is different from the one represented in login.html and register.html
+            //while those authenticate user sign in, this one focuses on the recording to text storage
+            const firebaseConfig = {
+            apiKey: "AIzaSyAQUMZhUMT12yDPL9HQX2DPxNmdTBSEg-k",
+            authDomain: "speechtotextarnav.firebaseapp.com",
+            databaseURL: "https://speechtotextarnav-default-rtdb.firebaseio.com",
+            projectId: "speechtotextarnav",
+            storageBucket: "speechtotextarnav.appspot.com",
+            messagingSenderId: "1083607560669",
+            appId: "1:1083607560669:web:d5829fd69c740631c4c634",
+            measurementId: "G-J9KZP0DJN4"
+            };
+          
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const analytics = getAnalytics(app);
+
+        //in order to use database methods from firebase, we must import a defined set of functions from firebase
+        //for our purposes, only getDatabase, ref, set, child, and update, remove, and push are needed             
+            import {getDatabase, ref, set, child, update, remove, push} from 
+            "https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js";
+
+            const db = getDatabase();
+
+//TEST THAT BROWSER IS COMPATIBLE             
+try {
+    //if browser allows, attempt to initialize Speech Recognition object from window.webkitSpeechRecognition 
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var voiceRecognizer = new SpeechRecognition(); 
+  }
+  catch(e) {
+    console.error(e);
+    $('.no-browser-support').show(); //show error message from div container if browser does not support this webkit
+    $('.record').hide(); //speech to text app should be hidden 
+  }
+  
+
+  //reference variables
+  var textarea = $('#textarea'); //reference to textbox
+  var instructions = $('#instructions'); //reference to instructions below text box
+  
+  var recordContent = ''; //this value will contain the transcribed recording stream
+  
+
+  //user can take pauses in their recording stream for around up to 15 seconds without recording being stopped automatically
+  voiceRecognizer.continuous = true;
+  
+  // when voiceRegnizer has captured a stream of words from the recording 
+  //onresult mechanism is fired when speech recognition service returns a result
+  voiceRecognizer.onresult = function(event) {
+  
+    //event contains everything that the user has said since hitting record
+    //we want to only focus on the most recent stream of words that user has spoken
+    var currentStream = event.resultIndex; //resultIndex is lowest index value in SpeechRecognitionResultList array (array is updated as each resut is returned to voiceRecognizer)
+  
+    // event.transcript translates what was stored as a stream to a string transcript
+    var transcription = event.results[currentStream][0].transcript; 
+  
+    
+    //found on an online forum that on some mobile devices there is a repetition bug, so we must handle this case by making sure that there is no repetition
+    var repetitionBug = (currentStream == 1 && transcription == event.results[0][0].transcript);
+  
+    if(!repetitionBug) {
+    //Add the current contents of the transcript to the textarea field 
+      recordContent += transcription;
+      textarea.val(recordContent); //place recording string transcription into text field
+    }
+  };
+  
+  //when voice recognizer is first called
+  voiceRecognizer.onstart = function() { 
+    instructions.text('Voice recognition had been activated. Try speaking into the microphone.');
+  }
+  
+  //if user speaks, then waits for >15 seconds, then recording stream will stop
+  voiceRecognizer.onspeechend = function() {
+    //instructions.text('You were quiet for a while so voice recognition turned itself off.');
+    instructions.text("Recording has stopped being detected, data has been stored.");
+
+  }
+  
+  //if user clicks record, but does not say anthing, then nothing will even be stored since no speech was detected
+  voiceRecognizer.onerror = function(event) {
+    if(event.error == 'no-speech') {
+      instructions.text('No speech was detected from recording. Try pressing record again.');  
+    };
+  }
+  
+//on start recording button click, voiceRecognizer() should be called
+  $('#start-record-btn').on('click', function(e) {
+      //if recordContent is not empty
+    if (recordContent.length) {
+      recordContent += ' '; 
+    }
+    voiceRecognizer.start(); 
+  });
+  
+  // Set the text within the text area as the recordContent variable.
+  textarea.on('input', function() {
+    recordContent = $(this).val();
+  })
+  
+  //when stop recording button clicked, voiceRecognizer() should be off
+  $('#stop-record-btn').on('click', function(e) {
+    voiceRecognizer.stop();
+  
+    //this is reached if user clicks record button, says nothing, and then clicks the save button (nothing can be stored)
+    if(!recordContent.length) {
+      instructions.text('Could not interpret recording. Please try again.');
+    }
+    else {
+      // local storage can be accessed later on within this web app
+      // Key is the date and time, Value is the content of the recording.
+      saveRecording(new Date().toLocaleString(), recordContent);
+
+      //reset the variables so that the user can once again record
+      recordContent = '';
+      textarea.val('');
+      instructions.text('Recording saved successfully.');
+    }
+        
+  })
+  
+  //function adds recorded time and content mapped to that time to the local storage
+  function saveRecording(dateTime, content) {
+    localStorage.setItem('recording-' + dateTime, content);
+
+    //write this information to firebase speech to text database
+    writeUserData();
+  }
+  
+  //stores information into firebase database
+  //guest users recording transcription will be stored under general "Data" node
+  //signed in users will have a node within the database under their full name to store transcribed recordings
+  function writeUserData(){
+    var key;
+    key = localStorage.key(localStorage.length - 1); //last thing added to local storage, which was "recording- date time"
+
+    //if currentUser has not been set, we assume that user is a guest
+    if(currentUser==null){
+        push(ref(db, "Data/"),{
+            string: key,
+            content: localStorage.getItem(localStorage.key(localStorage.length - 1)) //get what is inside at last item stored in local storage
+        });   
+    }
+    else{
+        push(ref(db, currentUser.fullname),{
+            string: key,
+            content: localStorage.getItem(localStorage.key(localStorage.length - 1)) //get what is inside the last item stored in local storage
+        });   
+    }
+
+    localStorage.clear(); //clear local storage once data has been written to firebase, so that we do not run out of memory
+  }
+
+    </script>
+
+    <!--import jquery so that we can acess speech to text api-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    
+    </body>
+</html>

@@ -1,0 +1,48 @@
+/*THIS FILE CONTAINS THE STYLING SPECIFICATIONS OF THE MAIN HOME PAGE (SPEECH TO TEXT RECORDING PAGE)*/
+
+/*set the main body tag to the center of the screen*/
+.container{
+    text-align: center;  
+}
+/*set the background color to blue*/
+body{
+    background-color: lightblue;
+}
+/*set the title font color to darkred, and set font family*/
+h1{
+    color: darkred;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+}
+/*set transition time of start and stop recording buttons*/
+#start-record-btn{
+    background-color: white;
+    transition-duration: 0.6s;
+}
+#stop-record-btn{
+    background-color: white;
+    transition-duration: 0.6s;
+}
+/*start recording button should start white, and turn green with shadow on hover*/
+#start-record-btn:hover {
+    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
+    background-color: lightgreen;
+    color: white;
+  }
+/*stop recording button should start white, and turn red with shadow on hover*/
+#stop-record-btn:hover {
+    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
+    background-color: #e64427;
+    color: white;
+  }
+/*in case the browser does not support SpeechToText web page, the "no-browser-support" heading should have the following style*/
+.no-browser-support {
+display: none;
+font-size: 1.2rem;
+color: #e64427;
+margin-top: 35px;
+}
+/*sets color and font-family of Welcome 'user' functionality*/
+#hh{
+    color:darkred;
+    font-family:Georgia, 'Times New Roman', Times, serif;
+}
